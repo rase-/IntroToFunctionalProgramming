@@ -12,7 +12,8 @@ import Data.List
 -- allEqual [1,1,1] ==> True
 
 allEqual :: Eq a => [a] -> Bool
-allEqual xs = undefined
+allEqual [] = True
+allEqual (x:xs) = all (x==) xs
 
 -- Tehtävä 2: Määrittele funktio secondSmallest, joka palauttaa listan
 -- toisiksi pienimmän alkion (käärittynä Justiin). Jos toisiksi
@@ -25,7 +26,9 @@ allEqual xs = undefined
 -- secondSmallest [5,3,7,2,3,1]  ==>  Just 2
 
 secondSmallest :: Ord a => [a] -> Maybe a
-secondSmallest xs = undefined
+secondSmallest [] = Nothing
+secondSmallest (x:[]) = Nothing
+secondSmallest xs = Just . head . tail $ sort xs
 
 -- Tehtävä 3: Määrittele funktio findDifference joka löytää kahden
 -- listan eron. Jos listat ovat eripituisia, tuotetaan arvo
@@ -45,7 +48,14 @@ secondSmallest xs = undefined
 --  findDifference [0,0,0] [0,0,0,0]
 --    ==> Just "3 /= 4"
 
-findDifference = undefined
+findDifference :: (Eq a, Show a) => [a] -> [a] -> Maybe String
+findDifference [] [] = Nothing
+findDifference a [] = Just ((show $ length a) ++ " /= 0")
+findDifference [] b = Just ("0 /= " ++ (show $ length b))
+findDifference l1@(x:xs) l2@(y:ys)
+  | length l1 /= length l2 = Just ((show (length l1)) ++ " /= " ++ (show $ (length l2)))
+  | x /= y = Just (show x ++ " /= " ++ show y)
+  | otherwise = findDifference xs ys
 
 -- Tehtävä 4: Määrittele funktio average, joka laskee annettujen
 -- lukujen keskiarvon. Muista että luokka Fractional on luokan Num
@@ -54,7 +64,7 @@ findDifference = undefined
 -- Vihje! Saat muutettua listan pituuden tyypistä Int tyypiksi a funktiolla fromIntegral
 
 average :: Fractional a => [a] -> a
-average xs = undefined
+average xs = sum xs / (fromIntegral $ length xs)
 
 -- Tehtävä 5: Määrittele allaolevalle tyypille Foo Eq-instanssi.
 -- Konstruktorien pitäisi olla yhtäsuuria vain itsensä kanssa.
@@ -65,18 +75,24 @@ data Foo = Bar | Quux | Xyzzy
   deriving Show
 
 instance Eq Foo where
-  (==) = error "toteuta minut"
+  Bar == Bar = True
+  Quux == Quux = True
+  Xyzzy == Xyzzy = True
+  _ == _ = False
   
 -- Tehtävä 6: Määrittele tyypille Foo sellainen Ord-instanssi että Quux < Bar < Xyzzy
 --
 -- Älä käytä derivingiä.
   
 instance Ord Foo where
-  compare = error "toteuta minut?"
-  (<=) = error "ja minut?"
-  min = error "ja minut?"
-  max = error "ja minut?"
-  
+  Quux <= Quux = True
+  Quux <= Bar = True
+  Quux <= Xyzzy = True
+  Bar <= Bar = True
+  Bar <= Xyzzy = True
+  Xyzzy <= Xyzzy = True
+  _ <= _ = False
+
 -- Tehtävä 7: Tässä on 3d-vektorityyppi Vector. Määrittele sille Eq-instanssi.
 --
 -- Älä käytä derivingiä.
@@ -85,7 +101,8 @@ data Vector = Vector Integer Integer Integer
   deriving Show
            
 instance Eq Vector where
-  (==) = error "toteuta minut"
+  (Vector x y z) == (Vector a b c) = x == a && y == b && z == c
+  _ == _ = False
 
 -- Tehtävä 8: Määrittele tyypille Vector Num-instanssi siten, että
 -- kaikki operaatiot toimivat jokaiselle komponentille.
@@ -100,6 +117,12 @@ instance Eq Vector where
 -- signum (Vector (-1) 2 (-3)) ==> Vector (-1) 1 (-1)
 
 instance Num Vector where
+  (Vector x y z) + (Vector a b c) = Vector (a + x) (b + y) (c + z)
+  (Vector x y z) * (Vector a b c) = Vector (a * x) (b * y) (c * z)
+  negate (Vector a b c) = Vector (-a) (-b) (-c)
+  abs (Vector a b c) = Vector (abs a) (abs b) (abs c)
+  signum (Vector a b c) = Vector (signum a) (signum b) (signum c)
+  fromInteger i = Vector i i i
 
 -- Tehtävä 9: Määrittele funktio freqs, joka laskee kuinka monta
 -- kertaa kukin alkio esiintyy listassa.
@@ -109,7 +132,9 @@ instance Num Vector where
 --   ==> [(3,False)]
 
 freqs :: Eq a => [a] -> [(Int,a)]
-freqs xs = undefined
+freqs xs = map (\x -> (occurrences x xs, x)) uniq
+  where uniq = nub xs
+        occurrences x xs = foldl (\acc a -> if a == x then acc + 1 else acc) 0 xs
 
 -- Tehtävä 10: Määrittele allaolevalle kokonaislukuja sisältävän
 -- binääripuun tyypille Eq-instanssi.
@@ -120,7 +145,9 @@ data ITree = ILeaf | INode Int ITree ITree
   deriving Show
 
 instance Eq ITree where
-  (==) = error "toteuta minut"
+  ILeaf == ILeaf = True
+  (INode a t1 t2) == (INode b v1 v2) = a == b && t1 == v1 && t2 == v2
+  _ == _ = False
 
 -- Tehtävä 11: Tässä on edelliseltä viikolta tuttu listatyyppimme
 -- List. Toteuta instanssi "Eq a => Eq (List a)" joka vertailee
@@ -132,7 +159,9 @@ data List a = Empty | LNode a (List a)
   deriving Show
 
 instance Eq a => Eq (List a) where
-  (==) = error "toteuta minut"
+  Empty == Empty = True
+  (LNode a list1) == (LNode b list2) = a == b && list1 == list2
+  _ == _ = False
 
 -- Tehtävä 12: Määrittele funktio incrementAll, joka lisää kaikkia
 -- funktorin sisällä olevia arvoja yhdellä.
@@ -142,7 +171,7 @@ instance Eq a => Eq (List a) where
 --   incrementAll (Just 3.0)  ==>  Just 4.0
 
 incrementAll :: (Functor f, Num n) => f n -> f n
-incrementAll x = undefined
+incrementAll x = fmap (+1) x
 
 -- Tehtävä 13: Alla on määritelty tyyppi Result, joka toimii hieman
 -- kuten Maybe, mutta virhetiloja on kaksi erilaista: toinen sisältää
@@ -152,10 +181,15 @@ data Result a = MkResult a | NoResult | Failure String
   deriving (Show,Eq)
 
 instance Functor Result where
+  fmap f (MkResult x) = MkResult (f x)
+  fmap f NoResult = NoResult
+  fmap f (Failure str) = Failure str
 
 -- Tehtävä 14: Määrittele instanssi Functor List.
-
+-- data List a = Empty | LNode a (List a)
 instance Functor List where
+  fmap f Empty = Empty
+  fmap f (LNode x tail) = LNode (f x) (fmap f tail)
 
 -- Tehtävä 15: Tässä tyyppi Fun a, joka on yksinkertainen kääre
 -- funktiolle tyyppiä Int -> a. Tehtävänäsi on kirjoittaa instanssi
@@ -170,6 +204,7 @@ runFun :: Fun a -> Int -> a
 runFun (Fun f) x = f x
 
 instance Functor Fun where
+  fmap f (Fun g) = Fun (f . g)
 
 -- Tehtävä 16: Määrittele operaattori ||| joka toimii kuten ||, mutta
 -- pakottaa _oikeanpuoleisen_ argumenttinsa.
@@ -180,7 +215,7 @@ instance Functor Fun where
 --   undefined ||| True  ==> True
 
 (|||) :: Bool -> Bool -> Bool
-x ||| y = undefined
+x ||| y = y || x
 
 -- Tehtävä 17: Määrittele funktio boolLength joka palauttaa
 -- Bool-listan pituuden ja pakottaa kaikki listan alkiot.
@@ -191,7 +226,11 @@ x ||| y = undefined
 -- Huom! length [False,undefined] ==> 2
 
 boolLength :: [Bool] -> Int
-boolLength xs = undefined
+boolLength xs = boolLength' xs 0
+  where boolLength' [] count = count
+        boolLength' (x:xs) count 
+          | x = boolLength' xs (count + 1)
+          | otherwise = boolLength' xs (count + 1)
 
 -- Tehtävä 18: Tämä ja seuraava tehtävä ovat pohjustusta ensi viikon
 -- materiaaliin.
@@ -222,7 +261,10 @@ boolLength xs = undefined
 --  (True,True,False)
 
 threeRandom :: (Random a, RandomGen g) => g -> (a,a,a)
-threeRandom g = undefined
+threeRandom g = let (a, gen) = random g
+                    (b, gen') = random gen
+                    (c, gen'') = random gen'
+                in (a, b, c)
 
 -- Tehtävä 19: Toteuta funktio randomizeTree joka ottaa puun ja
 -- palauttaa samanmuotoisen puun jossa jokaisessa Nodessa on
@@ -243,6 +285,10 @@ threeRandom g = undefined
 
 data Tree a = Leaf | Node a (Tree a) (Tree a)
   deriving Show
+
+mapTree :: (a -> b) -> Tree a -> Tree b
+mapTree f (Leaf) = Leaf
+mapTree f (Node val t1 t2) = Node (f val) (mapTree f t1) (mapTree f t2)
 
 randomizeTree :: (Random a, RandomGen g) => Tree b -> g -> (Tree a,g)
 randomizeTree t g = undefined
