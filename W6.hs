@@ -3,6 +3,8 @@ module W6 where
 import Control.Monad
 import Control.Monad.State
 import Data.Char
+import Data.List
+import Data.List.Split
 
 -- Tehtävä 1: Tässä luentojen ?>-operaattori. Toteuta sitä käyttäen
 -- funktio lueNimi, joka tuottaa parin (etunimi,sukunimi) kun sille
@@ -28,9 +30,23 @@ lueNimet s =
   ?>
   tarkastaIsotAlkukirjaimet
 
-pilko s = undefined
-tarkastaNumero x = undefined
-tarkastaIsotAlkukirjaimet x = undefined
+pilko :: String -> Maybe (String, String)
+pilko s
+  | length split > 1 = Just (head split, head $ tail split)
+  | otherwise = Nothing
+  where split = splitOn " " s
+
+tarkastaNumero :: (String, String) -> Maybe (String, String)
+tarkastaNumero (a,b)
+  | not (containsNum a) && not (containsNum b) = Just (a, b)
+  | otherwise = Nothing
+  where containsNum = any (\x -> x `elem` ['0'..'9'])
+
+tarkastaIsotAlkukirjaimet :: (String, String) -> Maybe (String, String)
+tarkastaIsotAlkukirjaimet (a, b)
+  | hasCapital a && hasCapital b = Just (a, b)
+  | otherwise = Nothing
+  where hasCapital = isUpper . head
 
 -- Tehtävä 2: Toteuta ?>-operaattorin avulla funktio chainList, joka
 -- muttaa listan Maybe-arvoja listaksi ketjuttamalla ne kaikki yhteen.
@@ -44,7 +60,10 @@ tarkastaIsotAlkukirjaimet x = undefined
 --    ==> Nothing
 
 chainList :: [Maybe a] -> Maybe [a]
-chainList ms = undefined
+chainList [] = Just []
+chainList xs = chainList' xs []
+  where chainList' [] list = Just list
+        chainList' (x:xs) list = x ?> (\x -> chainList' xs (list ++ [x]))
 
 -- Tehtävä 3: Toteuta chainListin ja ?>:n avulla funktio sumPos, joka
 -- laskee listan summan, mutta epäonnistuu (eli palauttaa Nothing) jos
@@ -54,7 +73,10 @@ chainList ms = undefined
 -- Mayben hahmonsovitusta!
 
 sumPos :: [Int] -> Maybe Int
-sumPos xs = undefined
+sumPos xs = sumPos' positives 0
+  where positives = map (\x -> if x >= 0 then Just x else Nothing) xs
+        sumPos' [] acc = Just acc
+        sumPos' (x:xs) acc = x ?> (\x -> sumPos' xs (acc + x))
 
 -- Tehtävä 4: Toteuta Maybe-monadia käyttäen (eli siis do-notaatiota
 -- tai >>=-operaattoria tai monadifunktioita) funktio myTake, joka
@@ -76,7 +98,12 @@ sumPos xs = undefined
 --    ==> Nothing
 
 myTake :: Maybe Int -> Maybe [a] -> Maybe [a]
-myTake mi ml = undefined
+myTake mi ml = do i <- mi
+                  l <- ml
+                  if i > length l
+                    then Nothing
+                  else
+                    Just (take i l)
 
 -- Tehtävä 5: Toteuta Maybe-monadia käyttäen (eli siis do-notaatiota
 -- tai >>=-operaattoria tai monadifunktioita) funktio selectSum, joka
@@ -93,7 +120,12 @@ myTake mi ml = undefined
 --    Nothing
 
 selectSum :: Num a => [a] -> [Int] -> Maybe a
-selectSum xs is = undefined
+selectSum xs is = safeSum' xs safeIndices 0
+  where safeIndex xs i = if i >= length xs || i < 0 then Nothing else Just i
+        safeIndices = map (safeIndex xs) is
+        safeSum' xs [] sum  = return sum
+        safeSum' xs (i:is) sum = do ind <- i
+                                    safeSum' xs is (sum + xs !! ind)
 
 -- Tehtävä 6: Alta löydät luentojen Logger-monadin toteutuksen.
 -- 
