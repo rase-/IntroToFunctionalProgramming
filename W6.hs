@@ -152,7 +152,14 @@ instance Monad Logger where
 msg s = Logger [s] ()
 
 binom :: Integer -> Integer -> Logger Integer
-binom n k = undefined
+binom n 0 = do msg ("B(" ++ show n ++ ",0)")
+               return 1
+binom 0 k = do msg ("B(0," ++ show k ++ ")")
+               return 0
+binom n k = do x <- binom (n - 1) (k - 1)
+               y <- binom (n - 1) k
+               msg ("B(" ++ show n ++ "," ++ show k ++ ")")
+               return (x + y)
 
 -- Tehtävä 7: Kirjoita State-monadissa operaatio paivitys joka ensin
 -- kertoo tilan kahdella ja sitten lisää siihen yhden. Tilatyyppi on
@@ -163,7 +170,8 @@ binom n k = undefined
 --    ==> ((),7) 
 
 paivitys :: State Int ()
-paivitys = undefined
+paivitys = do i <- get
+              put (2 * i + 1)
 
 -- Tehtävä 8: Kirjoita State-monadia käyttäen operaatio
 -- lengthAndCount. Operaation tulee palauttaa annetun listan pituus,
@@ -178,7 +186,12 @@ paivitys = undefined
 --    ==> (5,2)
 
 lengthAndCount :: Eq a => a -> [a] -> State Int Int
-lengthAndCount x ys = undefined
+lengthAndCount x xs = lengthAndCount' x xs 0
+  where  lengthAndCount' a [] acc = return acc
+         lengthAndCount' a (x:xs) acc = do i <- get
+                                           when (x == a) $ do
+                                             put (i + 1)
+                                           lengthAndCount' a xs (acc + 1)
 
 -- Tehtävä 9: Tyypillä [(a,Int)] voidaan laskea alkioitten
 -- esiintymiskertoja. Esimerkiksi [(True,1),(False,3)] tarkoittaa että
@@ -198,7 +211,16 @@ lengthAndCount x ys = undefined
 -- listan ennen vertailua.
 
 count :: Eq a => a -> State [(a,Int)] ()
-count x = return ()
+count x = do pairs <- get
+             if x `elem` vals pairs
+               then put (update x pairs)
+               else put (add x pairs)
+  where vals pairs = map fst pairs
+        add x pairs = (x, 1) : pairs
+        update x [] = []
+        update x ((a,c):pairs)
+          | a == x = (a, c + 1) : update x pairs
+          | otherwise = (a, c) : update x pairs
 
 -- Tehtävä 10: Kirjoita State-monadia käyttäen operaatio occurrences,
 -- joka muuntaa annetun listan siten, että arvon x paikalle tulee
@@ -219,7 +241,15 @@ count x = return ()
 
 
 occurrences :: (Eq a) => [a] -> State [(a,Int)] [Int]
-occurrences xs = undefined
+occurrences xs = occurrences' xs []
+  where occurrences' [] acc = return acc
+        occurrences' (x:xs) acc = do count x
+                                     counts <- get
+                                     occurrences' xs (acc ++ [getOcc x counts])
+        getOcc x [] = 0
+        getOcc x ((a,c):pairs)
+          | a == x = c
+          | otherwise = getOcc x pairs
 
 -- Tehtävä 11: Toteuta funktio ifM, joka ottaa monadioperaation joka
 -- palauttaa Boolin, ja jos se on True ajaa operaation opThen, ja jos
@@ -237,7 +267,8 @@ test = do
   return (x<10)
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
-ifM opBool opThen opElse = undefined
+ifM opBool opThen opElse = do b <- opBool
+                              if b then opThen else opElse
 
 -- Tehtävä 12: Toteuta mapM2, joka on kuin mapM, mutta listoja on
 -- kaksi ja argumenttina oleva operaatio ottaa kaksi argumenttia.
@@ -252,7 +283,11 @@ ifM opBool opThen opElse = undefined
 --    ==> ([(),(),()],5)
 
 mapM2 :: Monad m => (a -> b -> m c) -> [a] -> [b] -> m [c]
-mapM2 op xs = undefined
+mapM2 op xs ys = mapM2' op xs ys []
+  where mapM2' op [] ys acc = return acc
+        mapM2' op xs [] acc = return acc
+        mapM2' op (x:xs) (y:ys) acc = do a <- op x y
+                                         mapM2' op xs ys (acc ++ [a])
 
 -- Tehtävä 13&14: Hassumaassa on kaupunkeja, jotka on nimetty
 -- kokonaisluvuilla 0..n-1. Joittenkin kaupunkien välillä menee tie.
