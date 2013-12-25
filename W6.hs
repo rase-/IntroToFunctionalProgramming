@@ -355,7 +355,12 @@ routeExists :: [[Int]] -> Int -> Int -> Bool
 routeExists cities i j = j `elem` execState (dfs cities i) []
 
 dfs :: [[Int]] -> Int -> State [Int] ()
-dfs cities i = undefined
+dfs cities i = do visited <- get
+                  if not $ i `elem` visited then put (i : visited) else put (visited)
+                  mapM (dfs cities) (unvisitedNeighbors (i : visited))
+                  return ()
+  where neighbors = cities !! i
+        unvisitedNeighbors visited =  filter (\x -> not $ x `elem` visited) neighbors
 
 -- Tehtävä 15: Tee funktio orderedPairs, joka palauttaa kaikki parit
 -- (i,j) siten, että i<j ja i on ennen j:tä listassa xs.
@@ -418,7 +423,10 @@ sumBounded :: Int -> [Int] -> Maybe Int
 sumBounded k xs = foldM (f1 k) 0 xs
 
 f1 :: Int -> Int -> Int -> Maybe Int
-f1 k acc x = undefined
+f1 k acc x
+  | sum > k = Nothing
+  | otherwise = Just (sum)
+  where sum = acc + x
 
 -- Funktio sumNotTwice laskee listan summan, mutta jättää toistuvat
 -- luvut huomiotta.
@@ -433,7 +441,11 @@ sumNotTwice :: [Int] -> Int
 sumNotTwice xs = fst $ runState (foldM f2 0 xs) []
 
 f2 :: Int -> Int -> State [Int] Int
-f2 acc x = undefined
+f2 acc x = do occurred <- get
+              if x `elem` occurred
+                then return acc
+                else do put (x : occurred)
+                        return (acc + x)
 
 -- Tehtävä 18: Tässä viime viikon tehtävistä tuttu tyyppi Result.
 -- Tehtävänäsi on toteuttaa Monad Result instanssi, joka toimii
@@ -492,4 +504,3 @@ modifySL :: (Int->Int) -> SL ()
 modifySL f = SL (\s -> ((),f s,[]))
 
 instance Monad SL where
-
