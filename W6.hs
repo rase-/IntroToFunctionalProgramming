@@ -517,3 +517,4 @@ modifySL :: (Int->Int) -> SL ()
 modifySL f = SL (\s -> ((),f s,[]))
 
 instance Monad SL where
+  return x = SL (\i -> (x, i, []))

@@ -22,7 +22,12 @@ import Control.Monad.State
 -- PS. pyramidin ulkonäköä on helppo kokeilla ghci:ssä näin: putStr (pyramidi 5)
 
 pyramidi :: Int -> String
-pyramidi n = undefined
+pyramidi n = unlines . addSpacing $ map layer [1..n]
+  where layer 1 = "*"
+        layer n = concat $ replicate (starCount n) "*"
+        starCount n = (2 * n) - 1
+        addSpacing [] = []
+        addSpacing (l:layers) = ((concat $ replicate (length layers) " ") ++ l) : addSpacing layers
 
 -- Tehtävä 2: Toteuta funktio jokaToinen, joka ottaa listan ja
 -- palauttaa kaikki listan ensimmäisen, kolmannen, viidennen, jne.
@@ -40,7 +45,9 @@ pyramidi n = undefined
 --    ==> []
 
 jokaToinen :: [a] -> [a]
-jokaToinen xs = undefined
+jokaToinen [] = []
+jokaToinen [x] = [x]
+jokaToinen (x:y:xs) = x : jokaToinen xs
 
 -- Tehtävä 3: Toteuta funktio wrap, joka ottaa listan ja palauttaa
 -- parin (get,query). get ja query ovat funktioita siten, että
@@ -52,7 +59,9 @@ jokaToinen xs = undefined
 --    ==> (5,True,7,False)
 
 wrap :: Eq a => [a] -> (Int -> a, a -> Bool)
-wrap xs = undefined
+wrap xs = (get, query)
+  where get i = xs !! i
+        query x = x `elem` xs
 
 -- Tehtävä 4: Toteuta funktio nousevat, joka pilkkoo lukulistan
 -- (aidosti) nouseviin pätkiin.
@@ -66,7 +75,13 @@ wrap xs = undefined
 --    ==> [[4,7,9],[3,6],[1,2],[2,5,8],[0]]
 
 nousevat :: [Int] -> [[Int]]
-nousevat xs = undefined
+nousevat [] = []
+nousevat xs = inc : nousevat rest
+  where (inc, rest) = splitSeq ([head xs], tail xs) (head xs)
+        splitSeq (a,[]) c = (a,[])
+        splitSeq (a,x:xs) c = if c < x
+                                then  splitSeq (a ++ [x], xs) x
+                                else (a, x:xs)
 
 -- Tehtävä 5: Määrittele kurssilaista esittävä tietotyyppi
 -- Student, jolla on kolme kenttää: nimi (String),
@@ -91,22 +106,24 @@ nousevat xs = undefined
 --  getPoints $ addPoints (-1000) $ newStudent "x" "0"
 --    ==> 0
 
-data Student = StudentUndefined
+data Student = Student String String Int
 
 newStudent :: String -> String -> Student
-newStudent nam num = undefined
+newStudent nam num = Student nam num 0
 
 getName :: Student -> String
-getName s = undefined
+getName (Student nam num op) = nam
 
 getNumber :: Student -> String
-getNumber s = undefined
+getNumber (Student nam num op) = num
 
 getPoints :: Student -> Int
-getPoints s = undefined
+getPoints (Student nam num op) = op
 
 addPoints :: Int -> Student -> Student
-addPoints x s = undefined
+addPoints x (Student nam num op)
+  | x > 0 = Student nam num (op + x)
+  | otherwise = Student nam num op
 
 -- Tehtävä 6: Määrittele tyyppi Tree23, joka esittää puuta jossa
 -- jokaisella sisäsolmulla (eli ei-lehti-solmulla) on joko 2 tai 3
@@ -124,21 +141,27 @@ addPoints x s = undefined
 -- PS! Muista jättää deriving Show -rivi paikalleen että testit voivat
 -- tulostaa asioita.
 
-data Tree23 = Undefined
+data Tree23 = Leaf | Tree2 Tree23 Tree23 | Tree3 Tree23 Tree23 Tree23
   deriving Show
 
 leaf :: Tree23
-leaf = undefined
+leaf = Leaf
+
 node2 :: Tree23 -> Tree23 -> Tree23
-node2 = undefined
+node2 a b = Tree2 a b
+
 node3 :: Tree23 -> Tree23 -> Tree23 -> Tree23
-node3 = undefined
+node3 a b c = Tree3 a b c
 
 treeHeight :: Tree23 -> Int
-treeHeight t = undefined
+treeHeight Leaf = 0
+treeHeight (Tree3 a b c) = 1 + maximum [treeHeight a, treeHeight b, treeHeight c]
+treeHeight (Tree2 a b) = 1 + maximum [treeHeight a, treeHeight b]
 
 treeSize :: Tree23 -> Int
-treeSize t = undefined
+treeSize Leaf = 0
+treeSize (Tree3 a b c) = 1 + treeSize a + treeSize b + treeSize c
+treeSize (Tree2 a b) = 1 + treeSize a + treeSize b
 
 -- Tehtävä 7: Määrittele tyyppi MyString, ja sille Eq ja Ord
 -- -instanssit.
@@ -162,18 +185,22 @@ treeSize t = undefined
 -- compare (fromString "abc") (fromString "ab")  ==> GT
 -- compare (fromString "abc") (fromString "abd") ==> LT
 
-data MyString = MyStringUndefined
+data MyString = MyString String
 
 fromString :: String -> MyString
-fromString s = undefined
+fromString s = MyString s
+
 toString :: MyString -> String
-toString ms = undefined
+toString (MyString s) = s
 
 instance Eq MyString where
-  (==) = error "toteuta minut"
+  (MyString a) == (MyString b) = a == b
   
 instance Ord MyString where
-  compare = error "toteuta minut"
+  compare (MyString a) (MyString b)
+    | length a < length b = LT
+    | length a > length b = GT
+    | otherwise = compare a b
 
 -- Tehtävä 8: Alla tyyppi Expr, joka kuvaa yhteen- ja jakolaskuista
 -- koostuvia laskutoimituksia. Esimerkiksi (1+2)/3+4 olisi
@@ -198,7 +225,13 @@ instance Ord MyString where
 data Expr = Constant Int | Plus Expr Expr | Div Expr Expr
 
 safeEval :: Expr -> Maybe Int
-safeEval e = undefined
+safeEval (Constant i) = Just i
+safeEval (Plus a b) = do i <- safeEval a
+                         j <- safeEval b
+                         return $ i + j
+safeEval (Div a b) = do i <- safeEval a
+                        j <- safeEval b
+                        if j == 0 then Nothing else return $ div i j
 
 -- Tehtävä 9: Toteuta operaatio test, joka saa listan monadisia
 -- testejä ja arvon. test palauttaa True jos kaikki testit palauttavat
@@ -237,7 +270,11 @@ test2 k x = do modify (k:)
                return (x>k)
 
 test :: Monad m => [a -> m Bool] -> a -> m Bool
-test ts x = undefined
+test [] a = return True
+test (t:ts) a = do result <- t a
+                   if result
+                     then test ts a
+                     else return False
 
 -- Tehtävä 10: Toteuta State-monadissa operaatio odds, joka tuottaa
 -- tilan, jossa ovat kaikki ne alkiot jotka esiintyvät alkuperäisessä
@@ -253,4 +290,8 @@ test ts x = undefined
 --    ==> ((),[3,2,1])
 
 odds :: Eq a => [a] -> State [a] ()
-odds xs = undefined
+odds [] = return ()
+odds (x:xs) = do occ <- get
+                 put (toggle x occ)
+                 odds xs
+  where toggle x xs = if x `elem` xs then delete x xs else x:xs
