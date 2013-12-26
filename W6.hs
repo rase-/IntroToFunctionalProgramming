@@ -374,7 +374,12 @@ dfs cities i = do visited <- get
 -- PS. testit eivät jälleen välitä listan järjestyksestä
 
 orderedPairs :: [Int] -> [(Int,Int)]
-orderedPairs xs = undefined
+orderedPairs xs = do i <- inds
+                     j <- inds
+                     let a = xs !! i
+                         b = xs !! j
+                     if (i < j && a < b) then [(a,b)] else []
+  where inds = [0 .. length xs - 1]
 
 -- Tehtävä 16: Tee funktio summat, joka laskee kaikki listan alkioita
 -- summaamalla saatavat luvut.
@@ -396,7 +401,10 @@ orderedPairs xs = undefined
 
 
 summat :: [Int] -> [Int]
-summat xs = undefined
+summat [] = [0]
+summat (x:xs) = do belongs <- [True, False]
+                   sumRest <- summat xs
+                   if belongs then return (x + sumRest) else return sumRest
 
 -- Tehtävä 17: Haskellin standardikirjasto määritteelee funktion
 --   foldM :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m a
@@ -467,6 +475,11 @@ f2 acc x = do occurred <- get
 data Result a = MkResult a | NoResult | Failure String deriving (Show,Eq)
 
 instance Monad Result where
+  return x = MkResult x
+  NoResult >>= _ = NoResult
+  (Failure s) >>= _  = Failure s
+  (MkResult a) >>= f = f a
+  fail s = Failure s
 
 -- Tehtävä 19&20: Tässä SL-tyyppi, joka ikäänkuin yhdistää State- ja
 -- Logger-tyypit. Kirjoita instanssi Monad SL, joka kuljettaa tilaa
