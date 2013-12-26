@@ -53,8 +53,10 @@ not False = True
 -- funktiostasi sellainen, että paluuarvon täysin evaluoiminen vaatii
 -- lineaarisen ajan. Perustele ajankäyttö myös!
 
+-- Hmm is this actually linear? Maybe I need to use DiffLists
 reverse' :: [a] -> [a]
-reverse' xs = undefined
+reverse' [] = []
+reverse' (x:xs) = reverse' xs ++ [x]
 
 -- Tehtävä 4: Kirjoita vakiotilassa toimiva funktio, joka hakee
 -- merkkijonosta juuri ennen ensimmäistä välilyöntiä ennen esiintyvän
@@ -67,7 +69,11 @@ reverse' xs = undefined
 --   findIt "herpaderp hyi hai!" ==> 'e'
 
 findIt :: String -> Char
-findIt s = undefined
+findIt s = findIt' s ' '
+  where findIt' (c:cs) a
+          | c == ' ' = a
+          | c `elem` ['a', 'e', 'i', 'u', 'o', 'ä', 'ö', 'y'] = findIt' cs c
+          | otherwise = findIt' cs a
 
 -- Tehtävä 5: Toteuta vakiotilassa toimiva funktio count, joka laskee
 -- montako predikaatin täyttävää alkiota listasta löytyy. Perustele
@@ -76,8 +82,9 @@ findIt s = undefined
 -- Huom! Toteutuksen tulee olla vakiotilainen ilman optimointeja
 -- (taisiis -O0:lla käännettynä).
 
+-- TODO: check that actually reaches constant space
 count :: (a -> Bool) -> [a] -> Int
-count p xs = undefined
+count p xs = foldl' (\acc x -> if p x then acc + 1 else acc) 0 xs
 
 -- Tehtävä 6: Seuraavassa fibonaccin lukuja laskevassa funktiossa on
 -- muistivuoto (koita vaikkapa laskea 600000. fibonaccin luku). Korjaa
