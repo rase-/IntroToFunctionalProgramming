@@ -518,3 +518,6 @@ modifySL f = SL (\s -> ((),f s,[]))
 
 instance Monad SL where
   return x = SL (\i -> (x, i, []))
+  sl@(SL f) >>= g = SL (\s -> let (a,b,c) = runSL sl s 
+                                  (x,y,z) = runSL (g a) b
+                              in (x,y,c ++ z))
